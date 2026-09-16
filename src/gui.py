@@ -351,7 +351,7 @@ class JSONEditorGUI:
         self.pk_combobox["values"] = options
 
     # -------------------------------------------------------------------
-    # Save & Serialization (Atomic Write Integration)
+    # Save & Serialization (Safe Type Coercion Handling)
     # -------------------------------------------------------------------
 
     def save_active_file(self):
@@ -373,15 +373,21 @@ class JSONEditorGUI:
                     t = entry["type"].get()
                     raw_v = entry["val"].get().strip()
 
-                    # Coerce inputs to matching JSON primitive types
+                    # Safe type conversion with fallback to string
                     if t == "number":
-                        v = float(raw_v) if "." in raw_v else int(raw_v)
+                        try:
+                            v = float(raw_v) if "." in raw_v else int(raw_v)
+                        except ValueError:
+                            v = raw_v  # Fallback to string if parsing as number fails
                     elif t == "boolean":
                         v = raw_v.lower() in ("true", "1", "yes")
                     elif t == "null":
                         v = None
                     elif t in ("object", "array"):
-                        v = json.loads(raw_v) if raw_v else ({} if t == "object" else [])
+                        try:
+                            v = json.loads(raw_v) if raw_v else ({} if t == "object" else [])
+                        except json.JSONDecodeError:
+                            v = raw_v  # Fallback to string if parsing fails
                     else:
                         v = raw_v
 
